@@ -21,8 +21,8 @@ public class Event {
         ERROR
     }
 
-    public Event(long time, String message, TYPE type) {
-        this.time = time;
+    public Event(String message, TYPE type) {
+        this.time = System.currentTimeMillis();
         this.message = message;
         this.type = type;
     }

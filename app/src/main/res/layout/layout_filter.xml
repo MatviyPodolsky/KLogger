@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+              android:gravity="center"
+    android:orientation="vertical"
+    android:layout_margin="5dp">
+
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/filter_all"
+        android:text="ALL"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"/>
+
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/filter_regular"
+        android:text="REGULAR"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"/>
+
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/filter_action"
+        android:text="ACTION"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"/>
+
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/filter_error"
+        android:text="ERROR"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

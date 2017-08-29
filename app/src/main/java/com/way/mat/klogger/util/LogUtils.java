@@ -2,6 +2,7 @@ package com.way.mat.klogger.util;
 
 import com.way.mat.klogger.event.Event;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,6 +22,23 @@ public class LogUtils {
             }
         }
         return sbText.toString();
+    }
+
+    public static List<Event> getFilteredList(List<Event> logs, Event.TYPE filter) {
+        List<Event> filteredList = new ArrayList<>();
+        if (logs == null) {
+            return filteredList;
+        }
+        if (filter == null) {
+            return new ArrayList<>(logs);
+        }
+        for (final Event event :
+                logs) {
+            if (event.getType() == filter) {
+                filteredList.add(event);
+            }
+        }
+        return filteredList;
     }
 
 }

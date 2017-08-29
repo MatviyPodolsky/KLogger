@@ -16,7 +16,6 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hello World!"
             android:id="@+id/logs"/>
 
     </ScrollView>
@@ -35,8 +34,7 @@
             android:text="Refresh logs"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="5dp"
             />
 
         <android.support.v7.widget.AppCompatButton
@@ -44,8 +42,7 @@
             android:text="Send email"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="5dp"
             />
 
         <android.support.v7.widget.AppCompatButton
@@ -53,8 +50,61 @@
             android:text="Toggle overlay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="5dp"
+            />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="3"
+            android:gravity="center"
+            android:layout_marginBottom="5dp">
+
+            <android.support.v7.widget.AppCompatButton
+                android:id="@+id/action_increase_text_size"
+                android:text="Increase text size"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_marginRight="5dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                />
+
+            <android.support.v7.widget.AppCompatButton
+                android:id="@+id/action_decrease_text_size"
+                android:text="Decrease text size"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                />
+
+        </LinearLayout>
+
+        <android.support.v7.widget.AppCompatButton
+            android:id="@+id/action_filter"
+            android:text="Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            />
+
+        <android.support.v7.widget.AppCompatButton
+            android:id="@+id/action_api_call"
+            android:text="Send API Call"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            />
+
+        <android.support.v7.widget.AppCompatButton
+            android:id="@+id/action_clear_logs"
+            android:text="Clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
             />
 
     </LinearLayout>

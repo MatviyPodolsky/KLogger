@@ -8,11 +8,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.AppCompatEditText;
-import android.text.Editable;
-import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -21,17 +17,23 @@ import android.widget.TextView;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.way.mat.klogger.R;
 import com.way.mat.klogger.event.Event;
+import com.way.mat.klogger.newtwork.ApiService;
+import com.way.mat.klogger.newtwork.RestClient;
+import com.way.mat.klogger.newtwork.response.TestResponse;
+import com.way.mat.klogger.presenter.MainPresenter;
+import com.way.mat.klogger.ui.view.CustomTextWatcher;
 import com.way.mat.klogger.ui.widget.LoggerWidget;
 import com.way.mat.klogger.util.EmailUtils;
 import com.way.mat.klogger.util.LogUtils;
+import com.way.mat.klogger.util.ValidationUtils;
+import com.way.mat.klogger.view.MainView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import butterknife.BindView;
 import butterknife.OnClick;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity implements MainView {
 
     public static final String TAG = "KLogger";
 
@@ -40,15 +42,31 @@ public class MainActivity extends BaseActivity {
     @BindView(R.id.logs)
     TextView tvLogs;
 
-    private List<Event> mEvents = new ArrayList<>();
     private LoggerWidget widget;
+
+    private MainPresenter mPresenter;
+
+    private Event.TYPE currentFilter = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mPresenter = new MainPresenter();
+        mPresenter.bind(this);
+        initOverlay();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mPresenter.unbind();
+    }
+
+    private void initOverlay() {
         widget = new LoggerWidget.Builder()
                 .setContext(this)
                 .build();
+        widget.setLogs(new ArrayList<Event>());
     }
 
     @Override
@@ -58,15 +76,18 @@ public class MainActivity extends BaseActivity {
 
     @OnClick(R.id.action_refresh)
     public void writeLogs() {
-        mEvents.add(new Event(System.currentTimeMillis(), "write logs clicked", Event.TYPE.REGULAR));
-        tvLogs.setText(LogUtils.getLogsString(mEvents));
-        widget.setLogs(mEvents);
+        addLogAndUpdate(new Event("write logs clicked", Event.TYPE.REGULAR));
+    }
+
+    @OnClick(R.id.action_api_call)
+    public void callAPI() {
+        mPresenter.sendAPICall();
+        addLogAndUpdate(new Event("Sending request " + RestClient.BASE_URL + ApiService.ROUTE, Event.TYPE.ACTION));
     }
 
     @OnClick(R.id.action_toggle_overlay)
     public void toggleOverlay() {
-        mEvents.add(new Event(System.currentTimeMillis(), "toggle overlay clicked", Event.TYPE.REGULAR));
-        tvLogs.setText(LogUtils.getLogsString(mEvents));
+        addLogAndUpdate(new Event("toggle overlay clicked", Event.TYPE.REGULAR));
         if (widget.isShown()) {
             widget.hide();
         } else {
@@ -74,60 +95,81 @@ public class MainActivity extends BaseActivity {
                 widget.show();
             } else {
                 Log.d(TAG, "Can't change state! Device does not have drawOverlays permissions!");
+                addLogAndUpdate(new Event("Device does not have drawOverlays permissions!", Event.TYPE.ERROR));
                 checkOverlayPermission();
             }
         }
     }
 
-    private void checkOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(MainActivity.this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST);
-            return;
+    @OnClick(R.id.action_increase_text_size)
+    public void increaseTextSize() {
+        if (widget != null) {
+            widget.increaseTextSize();
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == OVERLAY_PERMISSION_REQUEST) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(MainActivity.this)) {
-                onPermissionsNotGranted();
-            } else {
-                if (widget != null) {
-                    widget.show();
+    @OnClick(R.id.action_decrease_text_size)
+    public void decreaseTextSize() {
+        if (widget != null) {
+            widget.decreaseTextSize();
+        }
+    }
+
+    @OnClick(R.id.action_clear_logs)
+    public void clearLogs() {
+        clear();
+    }
+
+    @OnClick(R.id.action_filter)
+    public void showFilterDialog() {
+        addLogAndUpdate(new Event("show filters clicked", Event.TYPE.ACTION));
+        View view = LayoutInflater.from(this).inflate(
+                R.layout.layout_filter, null);
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Select filter:")
+                .setView(view)
+                .create();
+        final View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switch (view.getId()) {
+                    case R.id.filter_all:
+                        currentFilter = null;
+                        break;
+                    case R.id.filter_action:
+                        currentFilter = Event.TYPE.ACTION;
+                        break;
+                    case R.id.filter_error:
+                        currentFilter = Event.TYPE.ERROR;
+                        break;
+                    case R.id.filter_regular:
+                        currentFilter = Event.TYPE.REGULAR;
+                        break;
                 }
+                applyFilter();
+                dialog.dismiss();
             }
-        }
+        };
+        view.findViewById(R.id.filter_all).setOnClickListener(listener);
+        view.findViewById(R.id.filter_action).setOnClickListener(listener);
+        view.findViewById(R.id.filter_regular).setOnClickListener(listener);
+        view.findViewById(R.id.filter_error).setOnClickListener(listener);
+
+        dialog.show();
     }
 
-    private void onPermissionsNotGranted() {
-        mEvents.add(new Event(System.currentTimeMillis(), " overlay permission denied", Event.TYPE.ERROR));
-        tvLogs.setText(LogUtils.getLogsString(mEvents));
+    private void applyFilter() {
+        addLogAndUpdate(new Event("new filter applied: " + (currentFilter != null ? currentFilter.toString() : "ALL"), Event.TYPE.REGULAR));
+        widget.applyFilter(currentFilter);
     }
 
     @OnClick(R.id.action_email)
     public void sendEmail() {
-        mEvents.add(new Event(System.currentTimeMillis(), "send logs clicked", Event.TYPE.ACTION));
+        addLogAndUpdate(new Event("send logs clicked", Event.TYPE.ACTION));
         View view = LayoutInflater.from(this).inflate(
                 R.layout.layout_dialog, null);
         final AppCompatEditText etEmail = view.findViewById(R.id.et_email);
-        etEmail.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                etEmail.setError(null);
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
-
-            }
-        });
+        etEmail.addTextChangedListener(new CustomTextWatcher(etEmail));
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Enter email:")
@@ -143,31 +185,29 @@ public class MainActivity extends BaseActivity {
                 b.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        final String email = etEmail.getText().toString();
-                        if (TextUtils.isEmpty(email)) {
-                            mEvents.add(new Event(System.currentTimeMillis(), "empty email", Event.TYPE.ERROR));
-                            etEmail.setError("Please, enter email");
-                            etEmail.requestFocus();
-                        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                            mEvents.add(new Event(System.currentTimeMillis(), "invalid email", Event.TYPE.ERROR));
-                            etEmail.setError("Please, enter correct email");
-                            etEmail.requestFocus();
-                        } else {
-                            mEvents.add(new Event(System.currentTimeMillis(), "sending email...", Event.TYPE.REGULAR));
-                            EmailUtils.sendEmail(MainActivity.this, email, LogUtils.getLogsString(mEvents),
-                                    new BackgroundMail.OnSuccessCallback() {
-                                        @Override
-                                        public void onSuccess() {
-                                            mEvents.add(new Event(System.currentTimeMillis(), "email sent", Event.TYPE.REGULAR));
-                                        }
-                                    },
-                                    new BackgroundMail.OnFailCallback() {
-                                        @Override
-                                        public void onFail() {
-                                            mEvents.add(new Event(System.currentTimeMillis(), "failed to send email", Event.TYPE.ERROR));
-                                        }
-                                    });
-                            dialog.dismiss();
+                        switch (ValidationUtils.validateEmail(etEmail)) {
+                            case EMPTY_EMAIL:
+                                addLogAndUpdate(new Event("empty email", Event.TYPE.ERROR));
+                                break;
+                            case INVALID_EMAIL:
+                                addLogAndUpdate(new Event("invalid email", Event.TYPE.ERROR));
+                                break;
+                            case SUCCESS:
+                                EmailUtils.sendEmail(MainActivity.this, etEmail.getText().toString(), LogUtils.getLogsString(widget.getLogs()),
+                                        new BackgroundMail.OnSuccessCallback() {
+                                            @Override
+                                            public void onSuccess() {
+                                                addLogAndUpdate(new Event("email sent", Event.TYPE.REGULAR));
+                                            }
+                                        },
+                                        new BackgroundMail.OnFailCallback() {
+                                            @Override
+                                            public void onFail() {
+                                                addLogAndUpdate(new Event("failed to send email", Event.TYPE.ERROR));
+                                            }
+                                        });
+                                dialog.dismiss();
+                                break;
                         }
                     }
                 });
@@ -177,4 +217,59 @@ public class MainActivity extends BaseActivity {
 
     }
 
+    private void addLogAndUpdate(final Event event) {
+        if (widget != null) {
+            widget.setLog(event);
+        }
+        if (tvLogs != null) {
+            tvLogs.setText(LogUtils.getLogsString(widget.getLogs()));
+        }
+
+    }
+
+    private void clear() {
+        if (tvLogs != null) {
+            tvLogs.setText("");
+        }
+        if (widget != null) {
+            widget.setLogs(new ArrayList<Event>());
+        }
+    }
+
+    private void checkOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(MainActivity.this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST);
+            return;
+        }
+    }
+
+    private void onPermissionsNotGranted() {
+        addLogAndUpdate(new Event(" overlay permission denied", Event.TYPE.ERROR));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == OVERLAY_PERMISSION_REQUEST) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(MainActivity.this)) {
+                onPermissionsNotGranted();
+            } else {
+                addLogAndUpdate(new Event("overlay permission granted", Event.TYPE.ERROR));
+                if (widget != null) {
+                    widget.show();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onResponseSucces(TestResponse response) {
+        addLogAndUpdate(new Event("Response success. Count : " + response.getCount(), Event.TYPE.ACTION));
+    }
+
+    @Override
+    public void onResponseFailded() {
+        addLogAndUpdate(new Event("Response failed.", Event.TYPE.ERROR));
+    }
 }

@@ -68,6 +68,28 @@ public class LoggerWidget {
         }
     }
 
+    public void increaseTextSize() {
+        if (loggerView != null) {
+            loggerView.increaseTextSize();
+            loggerView.scrollToBottom();
+        }
+    }
+
+    public void decreaseTextSize() {
+        if (loggerView != null) {
+            loggerView.decreaseTextSize();
+            loggerView.scrollToBottom();
+        }
+    }
+
+    public List<Event> getLogs() {
+        return loggerView != null ? loggerView.getLogs() : null;
+    }
+
+    public void applyFilter(Event.TYPE filter) {
+        loggerView.applyFilter(filter);
+    }
+
     public static class Builder {
 
         private Context context;

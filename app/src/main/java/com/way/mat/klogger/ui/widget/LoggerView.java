@@ -55,11 +55,30 @@ public class LoggerView extends LinearLayout {
         }
     }
 
+    public List<Event> getLogs() {
+        return adapter != null ? adapter.getLogs() : null;
+    }
+
+    public void applyFilter(Event.TYPE filter) {
+        adapter.applyFilter(filter);
+    }
+
     public void scrollToBottom() {
         if (recyclerView != null &&  adapter != null && adapter.getItemCount() > 0) {
             recyclerView.smoothScrollToPosition(adapter.getItemCount() - 1);
         }
     }
 
+    public void increaseTextSize() {
+        if (adapter != null) {
+            adapter.increaseTextSize();
+        }
+    }
+
+    public void decreaseTextSize() {
+        if (adapter != null) {
+            adapter.decreaseTextSize();
+        }
+    }
 
 }

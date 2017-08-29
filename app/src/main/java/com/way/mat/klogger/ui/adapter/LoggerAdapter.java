@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import com.way.mat.klogger.R;
 import com.way.mat.klogger.event.Event;
 import com.way.mat.klogger.ui.adapter.holder.LogViewHolder;
+import com.way.mat.klogger.util.Globals;
+import com.way.mat.klogger.util.LogUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,11 @@ public class LoggerAdapter extends RecyclerView.Adapter<LogViewHolder> {
     private final Context activity;
 
     private List<Event> entities;
+    private List<Event> filteredEntities;
+
+    private int textSize = Globals.DEFAULT_TEXT_SIZE;
+
+    private Event.TYPE filter = null;
 
     public LoggerAdapter(Context activity) {
         this.activity = activity;
@@ -46,12 +53,13 @@ public class LoggerAdapter extends RecyclerView.Adapter<LogViewHolder> {
                 holder.log.setTextColor(ContextCompat.getColor(activity, android.R.color.black));
                 break;
         }
+        holder.log.setTextSize(textSize);
         holder.log.setText(log.toString());
     }
 
     public Event getLog(int position) {
-        if (entities != null && entities.size() > 0) {
-            return entities.get(position);
+        if (filteredEntities != null && filteredEntities.size() > 0) {
+            return filteredEntities.get(position);
         }
 
         return null;
@@ -59,16 +67,43 @@ public class LoggerAdapter extends RecyclerView.Adapter<LogViewHolder> {
 
     public void setLogs(List<Event> entities) {
         this.entities = entities;
+        this.filteredEntities = new ArrayList<>(entities);
+        notifyDataSetChanged();
+    }
+
+    public List<Event> getLogs() {
+        return filteredEntities;
+    }
+
+    public void applyFilter(Event.TYPE filter) {
+        this.filter = filter;
+        this.filteredEntities = LogUtils.getFilteredList(entities, filter);
         notifyDataSetChanged();
     }
 
     @Override
     public int getItemCount() {
-        return entities == null ? 0 : entities.size();
+        return filteredEntities == null ? 0 : filteredEntities.size();
     }
 
     public void insertLog(Event log) {
         entities.add(log);
-        notifyItemInserted(getItemCount());
+        if (filter == null || log.getType() == filter) {
+            filteredEntities.add(log);
+            notifyItemInserted(getItemCount());
+        }
     }
+
+    public void increaseTextSize() {
+        textSize++;
+        notifyDataSetChanged();
+    }
+
+    public void decreaseTextSize() {
+        if (textSize > Globals.MINIMUM_TEXT_SIZE) {
+            textSize--;
+            notifyDataSetChanged();
+        }
+    }
+
 }
